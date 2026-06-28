@@ -1,0 +1,4 @@
+﻿import { useEffect, useState } from 'react'
+import api from '../api/axiosClient'
+import { scoreBadge } from '../utils/match'
+export default function Ranking() { const [jobs,setJobs]=useState([]),[job,setJob]=useState(''),[rows,setRows]=useState([]); useEffect(()=>{api.get('/api/jobs/my').then(r=>setJobs(r.data))},[]); async function run(){const r=await api.post('/api/matches/run',{job_id:job}); setRows(r.data)} return <section><h1>Candidate Ranking</h1><select onChange={e=>setJob(e.target.value)}><option>Select job</option>{jobs.map(j=><option value={j.id} key={j.id}>{j.title}</option>)}</select><button onClick={run}>Run Matching</button><table><tbody>{rows.map(r=><tr key={r.cv_id}><td>#{r.rank}</td><td>{r.overall_score}</td><td><span className="badge">{scoreBadge(r.overall_score)}</span></td><td>{r.matched_skills?.join(', ')}</td><td>{r.missing_skills?.join(', ')}</td></tr>)}</tbody></table></section> }

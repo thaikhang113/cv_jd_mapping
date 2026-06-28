@@ -1,0 +1,3 @@
+﻿import { useState } from 'react'
+import api from '../api/axiosClient'
+export default function UploadCV({ multiple=false }) { const [msg,setMsg]=useState(''); async function submit(e){e.preventDefault(); const fd=new FormData(); [...e.target.files.files].forEach(f=>fd.append(multiple?'files':'file',f)); const url=multiple?'/api/cvs/upload-multiple':'/api/cvs/upload'; const r=await api.post(url,fd); setMsg(`Uploaded ${Array.isArray(r.data)?r.data.length:1} CV`) } return <section><h1>{multiple?'Upload Candidate CVs':'Upload CV'}</h1><form onSubmit={submit} className="upload"><input name="files" type="file" accept=".pdf,.docx" multiple={multiple}/><button>Upload</button></form><p>{msg}</p></section> }
