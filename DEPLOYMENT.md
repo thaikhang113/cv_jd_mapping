@@ -1,4 +1,4 @@
-﻿# Deployment Guide
+# Deployment Guide
 
 ## MongoDB Atlas
 
@@ -53,3 +53,11 @@ az webapp restart --resource-group rg-cv-match-platform --name cv-match-platform
 - Upload fail: App Service filesystem is ephemeral; OK for demo, use Blob Storage for production.
 - Atlas timeout: Network Access IP not allowed.
 - scikit install fail locally: use Python 3.12 or Docker image.
+
+## Actual Deployment Notes
+
+- Backend runs as Docker container on Azure App Service: `cv-match-platform-api-tk2`.
+- Image registry: Azure Container Registry `cvmatchacrthaikhang`.
+- App Service Plan was scaled to `B1` after Free tier quota was exceeded.
+- Production frontend: `https://frontend-sigma-one-yds5b7xjmm.vercel.app`.
+- Production backend: `https://cv-match-platform-api-tk2.azurewebsites.net`.

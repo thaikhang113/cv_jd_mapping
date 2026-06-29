@@ -1,4 +1,4 @@
-﻿# CV Match Platform
+# CV Match Platform
 
 Mini recruitment platform for candidates, recruiters, and admins. FARM stack: FastAPI, React/Vite, MongoDB.
 
@@ -85,7 +85,7 @@ Frontend: `VITE_API_BASE_URL`.
 
 ## Submission Links
 
-- GitHub repository: pending push
-- Frontend Vercel: pending deploy
-- Backend Swagger: pending deploy
-- MongoDB Atlas: configured by env only; do not commit URI
+- GitHub repository: https://github.com/thaikhang113/cv_jd_mapping
+- Frontend Vercel: https://frontend-sigma-one-yds5b7xjmm.vercel.app
+- Backend Swagger: https://cv-match-platform-api-tk2.azurewebsites.net/docs
+- MongoDB Atlas: database `cv_match_platform` configured via Azure App Settings `MONGO_URI`
