@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.database import ping_db, ensure_indexes
@@ -12,7 +12,10 @@ app.add_middleware(CORSMiddleware, allow_origins=list(set(origins)), allow_crede
 
 @app.on_event("startup")
 async def startup():
-    await ensure_indexes()
+    try:
+        await ensure_indexes()
+    except Exception as exc:
+        print(f"Startup index warning: {exc}")
 
 @app.get("/health")
 async def health():
