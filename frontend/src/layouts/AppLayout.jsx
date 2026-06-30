@@ -10,8 +10,8 @@ const menu = {
 export default function AppLayout() {
   const { user, logout } = useAuth(); const loc=useLocation(); const nav=useNavigate()
   const [so,setSo]=useState(false); const [dark,setDark]=useState(()=>localStorage.getItem('theme')==='dark')
-  if(!user) return <Navigate to="/login" />
   useEffect(()=>{document.documentElement.setAttribute('data-theme',dark?'dark':'light');localStorage.setItem('theme',dark?'dark':'light')},[dark])
+  if(!user) return <Navigate to="/login" />
   return <div className="app">
     <div className={'sidebar-backdrop'+(so?' open':'')} onClick={()=>setSo(false)}/>
     <aside className={so?'open':''}>
