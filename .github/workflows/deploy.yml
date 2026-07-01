@@ -1,0 +1,81 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    env:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      AZURE_RESOURCE_GROUP: ${{ secrets.AZURE_RESOURCE_GROUP }}
+      AZURE_WEBAPP_NAME: ${{ secrets.AZURE_WEBAPP_NAME }}
+      AZURE_ACR_NAME: ${{ secrets.AZURE_ACR_NAME }}
+      AZURE_ACR_LOGIN_SERVER: ${{ secrets.AZURE_ACR_LOGIN_SERVER }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Skip backend deploy when secrets are missing
+        if: ${{ env.AZURE_CREDENTIALS == '' || env.AZURE_RESOURCE_GROUP == '' || env.AZURE_WEBAPP_NAME == '' || env.AZURE_ACR_NAME == '' || env.AZURE_ACR_LOGIN_SERVER == '' }}
+        run: echo "Azure deployment skipped: missing GitHub secrets."
+      - uses: azure/login@v2
+        if: ${{ env.AZURE_CREDENTIALS != '' && env.AZURE_RESOURCE_GROUP != '' && env.AZURE_WEBAPP_NAME != '' && env.AZURE_ACR_NAME != '' && env.AZURE_ACR_LOGIN_SERVER != '' }}
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Build and push backend image
+        if: ${{ env.AZURE_CREDENTIALS != '' && env.AZURE_RESOURCE_GROUP != '' && env.AZURE_WEBAPP_NAME != '' && env.AZURE_ACR_NAME != '' && env.AZURE_ACR_LOGIN_SERVER != '' }}
+        run: |
+          az acr login --name "${{ secrets.AZURE_ACR_NAME }}"
+          IMAGE="${{ secrets.AZURE_ACR_LOGIN_SERVER }}/cv-match-platform-api:${{ github.sha }}"
+          docker build -t "$IMAGE" backend
+          docker push "$IMAGE"
+          echo "IMAGE=$IMAGE" >> "$GITHUB_ENV"
+      - name: Update Azure Web App
+        if: ${{ env.AZURE_CREDENTIALS != '' && env.AZURE_RESOURCE_GROUP != '' && env.AZURE_WEBAPP_NAME != '' && env.AZURE_ACR_NAME != '' && env.AZURE_ACR_LOGIN_SERVER != '' }}
+        run: |
+          az webapp config container set \
+            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+            --name "${{ secrets.AZURE_WEBAPP_NAME }}" \
+            --docker-custom-image-name "$IMAGE" \
+            --docker-registry-server-url "https://${{ secrets.AZURE_ACR_LOGIN_SERVER }}"
+          az webapp restart \
+            --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
+            --name "${{ secrets.AZURE_WEBAPP_NAME }}"
+
+  frontend:
+    runs-on: ubuntu-latest
+    env:
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Skip frontend deploy when secrets are missing
+        if: ${{ env.VERCEL_TOKEN == '' || env.VERCEL_ORG_ID == '' || env.VERCEL_PROJECT_ID == '' || env.VITE_API_BASE_URL == '' }}
+        run: echo "Vercel deployment skipped: missing GitHub secrets."
+      - name: Deploy frontend to Vercel
+        if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' && env.VITE_API_BASE_URL != '' }}
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+        run: |
+          npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+          npx vercel build --prod --token="$VERCEL_TOKEN"
+          npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
