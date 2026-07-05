@@ -5,7 +5,7 @@ from docx import Document
 
 SKILLS = {
     "python","fastapi","django","flask","react","vue","angular","javascript","typescript","mongodb","postgresql","mysql","sql",
-    "docker","kubernetes","azure","aws","gcp","git","github","gitlab","html","css","tailwind","node","express","java",
+    "docker","kubernetes","azure","aws","gcp","git","github","gitlab","html","css","tailwind","node","node.js","express","java",
     "spring","c#",".net","go","rust","php","laravel","redis","rabbitmq","kafka","elasticsearch","linux","ci/cd",
     "jenkins","terraform","ansible","machine learning","deep learning","data analysis","pandas","numpy","spark","airflow",
     "power bi","tableau","excel","qa","selenium","playwright","cypress","figma","product management","scrum","agile",
@@ -19,7 +19,7 @@ HEADINGS = {
     "education": {"education", "academic"},
     "certifications": {"certifications", "certification", "certificates"},
     "languages": {"languages", "language"},
-    "skills": {"skills", "technical skills", "core skills"},
+    "skills": {"skills", "skill", "technical skills", "core skills", "ky nang", "cong nghe", "programming languages", "programming language", "tools", "frameworks", "technologies"},
 }
 
 
@@ -58,7 +58,7 @@ def find_skills(text: str):
 
 def extract_years(text: str) -> float:
     lower = text.lower()
-    explicit = [float(y) for y in re.findall(r"(\d+(?:\.\d+)?)\+?\s*(?:years|year|yrs|nam)", lower)]
+    explicit = [float(y) for y in re.findall(r"(\d+(?:\.\d+)?)\+?\s*(?:years|year|yrs|nam|n?m)", lower)]
     if explicit:
         return max(explicit)
     ranges = []

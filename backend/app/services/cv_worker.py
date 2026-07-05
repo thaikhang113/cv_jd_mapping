@@ -69,7 +69,10 @@ async def process_queue_item(item):
         )
         await rank_job_matches(job["_id"])
         matched_jobs += 1
-    await db.cvs.update_one({"_id": cv["_id"]}, {"$set": {"processing_status": "done", "updated_at": now_utc()}})
+    done_at = now_utc()
+    await db.cvs.update_one({"_id": cv["_id"]}, {"$set": {"processing_status": "done", "updated_at": done_at}})
+    if cv.get("uploaded_by_role") == "candidate":
+        await db.users.update_one({"_id": cv["owner_id"]}, {"$set": {"primary_cv_id": cv["_id"], "updated_at": done_at}})
     return matched_jobs
 
 

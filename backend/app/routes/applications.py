@@ -10,19 +10,29 @@ router = APIRouter(prefix="/api/applications", tags=["applications"])
 async def enrich_applications(rows):
     job_ids = list({row["job_id"] for row in rows})
     user_ids = list({row["candidate_id"] for row in rows} | {row["recruiter_id"] for row in rows})
+    cv_ids = list({row.get("cv_id") for row in rows if row.get("cv_id")})
     jobs = {job["_id"]: job async for job in db.jobs.find({"_id": {"$in": job_ids}})} if job_ids else {}
     users = {u["_id"]: u async for u in db.users.find({"_id": {"$in": user_ids}}, {"password_hash": 0})} if user_ids else {}
+    cvs = {cv["_id"]: cv async for cv in db.cvs.find({"_id": {"$in": cv_ids}})} if cv_ids else {}
     enriched = []
     for row in rows:
         doc = serialize_doc(row)
         job = jobs.get(row["job_id"], {})
         candidate = users.get(row["candidate_id"], {})
         recruiter = users.get(row["recruiter_id"], {})
+        cv = cvs.get(row.get("cv_id"), {})
+        cv_data = cv.get("extracted_data", {})
         doc.update({
             "job_title": job.get("title", doc["job_id"]),
             "company_name": job.get("company_name", ""),
-            "candidate_name": candidate.get("name", doc["candidate_id"]),
+            "candidate_name": cv_data.get("name") or candidate.get("name", doc["candidate_id"]),
             "recruiter_name": recruiter.get("name", doc["recruiter_id"]),
+            "cv_filename": cv.get("filename", ""),
+            "cv_name": cv_data.get("name"),
+            "cv_email": cv_data.get("email"),
+            "cv_phone": cv_data.get("phone"),
+            "cv_skills": cv_data.get("skills", []),
+            "cv_experience_years": cv_data.get("experience_years", 0),
         })
         enriched.append(doc)
     return enriched
@@ -54,7 +64,11 @@ async def apply(payload: ApplicationIn, user=Depends(require_roles("candidate"))
     except DuplicateKeyError:
         existing = await db.applications.find_one({"job_id": job["_id"], "candidate_id": oid(user["id"])})
         if existing:
-            return serialize_doc(existing)
+            await db.applications.update_one(
+                {"_id": existing["_id"]},
+                {"$set": {"cv_id": cv_id, "recruiter_id": job["recruiter_id"], "updated_at": now_utc()}},
+            )
+            return serialize_doc(await db.applications.find_one({"_id": existing["_id"]}))
         raise
 
 @router.get("/my")

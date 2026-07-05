@@ -44,7 +44,13 @@ async def upload_multiple(files: list[UploadFile] = File(...), user=Depends(requ
 
 @router.get("/my")
 async def my_cvs(user=Depends(get_current_user)):
-    return [serialize_doc(c) async for c in db.cvs.find({"owner_id": oid(user["id"])})]
+    primary = str(user.get("primary_cv_id") or "")
+    rows = []
+    async for cv in db.cvs.find({"owner_id": oid(user["id"])}).sort("updated_at", -1):
+        doc = serialize_doc(cv)
+        doc["is_primary"] = doc["id"] == primary
+        rows.append(doc)
+    return rows
 
 @router.get("/{cv_id}")
 async def get_cv(cv_id: str, user=Depends(get_current_user)):

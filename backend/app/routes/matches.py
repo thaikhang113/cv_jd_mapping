@@ -5,6 +5,20 @@ from app.services.matching import compute_match
 
 router = APIRouter(prefix="/api/matches", tags=["matches"])
 
+
+def attach_cv_info(row: dict, cv: dict) -> dict:
+    data = cv.get("extracted_data", {}) if cv else {}
+    row.update({
+        "cv_filename": cv.get("filename", "") if cv else "",
+        "cv_name": data.get("name"),
+        "candidate_name": data.get("name"),
+        "cv_email": data.get("email"),
+        "cv_phone": data.get("phone"),
+        "cv_skills": data.get("skills", []),
+        "cv_experience_years": data.get("experience_years", 0),
+    })
+    return row
+
 @router.post("/run")
 async def run_matches(payload: dict, user=Depends(require_roles("recruiter", "admin"))):
     job_id = payload.get("job_id")
@@ -18,6 +32,7 @@ async def run_matches(payload: dict, user=Depends(require_roles("recruiter", "ad
     async for cv in db.cvs.find(query):
         result = compute_match(cv, job)
         result.update({"job_id": job["_id"], "cv_id": cv["_id"], "recruiter_id": job["recruiter_id"], "created_at": now_utc(), "updated_at": now_utc()})
+        attach_cv_info(result, cv)
         await db.matching_results.update_one({"job_id": job["_id"], "cv_id": cv["_id"]}, {"$set": result}, upsert=True)
         rows.append(result)
     rows.sort(key=lambda r: r["overall_score"], reverse=True)
@@ -28,8 +43,10 @@ async def run_matches(payload: dict, user=Depends(require_roles("recruiter", "ad
 
 @router.get("/job/{job_id}")
 async def job_matches(job_id: str, user=Depends(get_current_user)):
-    rows = [serialize_doc(r) async for r in db.matching_results.find({"job_id": oid(job_id)}).sort("rank", 1)]
-    return rows
+    rows = [r async for r in db.matching_results.find({"job_id": oid(job_id)}).sort("overall_score", -1)]
+    missing_cv_ids = [r["cv_id"] for r in rows if not r.get("cv_email")]
+    cvs = {cv["_id"]: cv async for cv in db.cvs.find({"_id": {"$in": missing_cv_ids}})} if missing_cv_ids else {}
+    return [serialize_doc(attach_cv_info(r, cvs.get(r["cv_id"], {})) if r["cv_id"] in cvs else r) for r in rows]
 
 @router.get("/my")
 async def my_matches(user=Depends(get_current_user)):
@@ -42,4 +59,7 @@ async def my_matches(user=Depends(get_current_user)):
         query = {"recruiter_id": oid(user["id"])}
     else:
         query = {}
-    return [serialize_doc(r) async for r in db.matching_results.find(query).sort("overall_score", -1)]
+    rows = [r async for r in db.matching_results.find(query).sort("overall_score", -1)]
+    missing_cv_ids = [r["cv_id"] for r in rows if not r.get("cv_email")]
+    cvs = {cv["_id"]: cv async for cv in db.cvs.find({"_id": {"$in": missing_cv_ids}})} if missing_cv_ids else {}
+    return [serialize_doc(attach_cv_info(r, cvs.get(r["cv_id"], {})) if r["cv_id"] in cvs else r) for r in rows]
