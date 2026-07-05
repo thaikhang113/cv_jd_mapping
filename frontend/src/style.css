@@ -301,3 +301,11 @@ a:hover { text-decoration: underline; }
 .detail-actions{margin-top:18px}
 .grid.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
 @media (max-width:768px){.page-head{display:block}.grid.two{grid-template-columns:1fr}.row-actions{align-items:stretch}.row-actions .btn,.row-actions button{width:100%;justify-content:center}}
+.file-progress-item { align-items: flex-start; }
+.file-progress-main { flex: 1; min-width: 0; }
+.file-progress-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.upload-progress { width: 100%; }
+.upload-progress-meta { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; }
+.progress-fill.active { background: linear-gradient(90deg, var(--primary), var(--accent)); }
+.progress-fill.complete { background: var(--accent); }
+.progress-fill.failed { background: var(--destructive); }
