@@ -69,6 +69,7 @@ def bullets(lines):
     return [line for line in lines if len(line) > 2 and not re.match(r"^(company|location|salary|job type)\s*:", line, re.I)]
 
 
+# ponytail: heuristic parser ceiling; upgrade path is recruiter-reviewed taxonomy plus ML/NER, not external AI API.
 def parse_jd_text(text: str) -> dict:
     lines = clean_lines(text)
     sections = jd_sections(text)

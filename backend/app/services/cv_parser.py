@@ -104,6 +104,7 @@ def parse_education(lines):
     return rows
 
 
+# ponytail: heuristic parser ceiling; upgrade path is recruiter-reviewed taxonomy plus ML/NER, not external AI API.
 def parse_cv_text(text: str) -> dict:
     sections = sectionize(text)
     lines = clean_lines(text)
