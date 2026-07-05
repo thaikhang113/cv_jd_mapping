@@ -22,7 +22,8 @@ jobs:
       - uses: actions/checkout@v4
       - name: Skip backend deploy when secrets are missing
         if: ${{ env.AZURE_CREDENTIALS == '' || env.AZURE_RESOURCE_GROUP == '' || env.AZURE_WEBAPP_NAME == '' || env.AZURE_ACR_NAME == '' || env.AZURE_ACR_LOGIN_SERVER == '' }}
-        run: echo "Azure deployment skipped: missing GitHub secrets."
+        run: |
+          echo "Azure deployment skipped: missing GitHub secrets."
       - uses: azure/login@v2
         if: ${{ env.AZURE_CREDENTIALS != '' && env.AZURE_RESOURCE_GROUP != '' && env.AZURE_WEBAPP_NAME != '' && env.AZURE_ACR_NAME != '' && env.AZURE_ACR_LOGIN_SERVER != '' }}
         with:
@@ -67,7 +68,8 @@ jobs:
       - run: npm ci
       - name: Skip frontend deploy when secrets are missing
         if: ${{ env.VERCEL_TOKEN == '' || env.VERCEL_ORG_ID == '' || env.VERCEL_PROJECT_ID == '' || env.VITE_API_BASE_URL == '' }}
-        run: echo "Vercel deployment skipped: missing GitHub secrets."
+        run: |
+          echo "Vercel deployment skipped: missing GitHub secrets."
       - name: Deploy frontend to Vercel
         if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' && env.VITE_API_BASE_URL != '' }}
         env:
