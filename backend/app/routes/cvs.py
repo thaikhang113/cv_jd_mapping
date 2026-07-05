@@ -1,9 +1,10 @@
-﻿from pathlib import Path
+from pathlib import Path
 from uuid import uuid4
 from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from app.config import settings
 from app.database import db
 from app.dependencies import get_current_user, require_roles, oid, serialize_doc, now_utc
+from app.services.cv_parser import extract_text, parse_cv_text
 from app.services.cv_worker import enqueue_cv
 
 router = APIRouter(prefix="/api/cvs", tags=["cvs"])
@@ -17,23 +18,38 @@ async def save_cv(file: UploadFile, user: dict):
     safe_name = f"{uuid4().hex}{suffix}"
     path = upload_dir / safe_name
     path.write_bytes(await file.read())
+    created_at = now_utc()
+    raw_text = ""
+    extracted_data = {}
+    processing_status = "done"
+    processing_error = None
+    try:
+        raw_text = extract_text(str(path))
+        extracted_data = parse_cv_text(raw_text)
+    except Exception as exc:
+        processing_status = "failed"
+        processing_error = str(exc)
     doc = {
         "owner_id": oid(user["id"]),
         "uploaded_by_role": user["role"],
         "filename": file.filename,
         "file_path": str(path),
-        "raw_text": "",
-        "extracted_data": {},
-        "processing_status": "queued",
-        "created_at": now_utc(),
-        "updated_at": now_utc(),
+        "raw_text": raw_text,
+        "extracted_data": extracted_data,
+        "processing_status": processing_status,
+        "created_at": created_at,
+        "updated_at": created_at,
     }
+    if processing_error:
+        doc["processing_error"] = processing_error
     result = await db.cvs.insert_one(doc)
-    await enqueue_cv(result.inserted_id, oid(user["id"]))
+    if user["role"] == "candidate" and processing_status == "done":
+        await db.users.update_one({"_id": oid(user["id"])}, {"$set": {"primary_cv_id": result.inserted_id, "updated_at": now_utc()}})
+    if processing_status == "done":
+        await enqueue_cv(result.inserted_id, oid(user["id"]), mark_queued=False)
     cv = serialize_doc(await db.cvs.find_one({"_id": result.inserted_id}))
-    cv["queued"] = True
+    cv["queued"] = processing_status == "done"
     return cv
-
 @router.post("/upload")
 async def upload_cv(file: UploadFile = File(...), user=Depends(require_roles("candidate", "recruiter", "admin"))):
     return await save_cv(file, user)

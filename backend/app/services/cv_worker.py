@@ -7,7 +7,7 @@ from app.services.cv_parser import extract_text, parse_cv_text
 from app.services.matching import compute_match
 
 
-async def enqueue_cv(cv_id, owner_id):
+async def enqueue_cv(cv_id, owner_id, mark_queued: bool = True):
     now = now_utc()
     doc = {
         "cv_id": cv_id,
@@ -22,7 +22,8 @@ async def enqueue_cv(cv_id, owner_id):
         {"$set": doc, "$setOnInsert": {"created_at": now}},
         upsert=True,
     )
-    await db.cvs.update_one({"_id": cv_id}, {"$set": {"processing_status": "queued", "updated_at": now}})
+    if mark_queued:
+        await db.cvs.update_one({"_id": cv_id}, {"$set": {"processing_status": "queued", "updated_at": now}})
 
 
 async def claim_queue_item(worker_id: int):

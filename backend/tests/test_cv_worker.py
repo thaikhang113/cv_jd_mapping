@@ -96,3 +96,15 @@ def test_process_queue_item_marks_cv_done_before_best_effort_matching(monkeypatc
     assert cv["extracted_data"]["email"] == "two@example.com"
     assert cv["matching_error"]
     assert fake_db.users.rows[0]["primary_cv_id"] == cv_id
+
+def test_enqueue_cv_can_preserve_done_status(monkeypatch):
+    cv_id, owner_id = ObjectId(), ObjectId()
+    cv = {"_id": cv_id, "owner_id": owner_id, "processing_status": "done"}
+    fake_db = FakeDB(cv, {})
+    fake_db.cv_processing_queue = Collection([])
+    monkeypatch.setattr(cv_worker, "db", fake_db)
+
+    asyncio.run(cv_worker.enqueue_cv(cv_id, owner_id, mark_queued=False))
+
+    assert cv["processing_status"] == "done"
+    assert fake_db.cv_processing_queue.rows[0]["status"] == "pending"
