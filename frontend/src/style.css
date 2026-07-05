@@ -287,3 +287,5 @@ a:hover { text-decoration: underline; }
 .demo-logins{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;font-size:.85rem;color:var(--text-muted)}
 .demo-logins button{border:1px solid var(--border);background:var(--surface);color:var(--primary);border-radius:999px;padding:6px 10px;cursor:pointer}
 .demo-logins button:hover{background:var(--primary-soft)}
+.match-detail{display:flex;flex-direction:column;gap:6px;min-width:320px}
+.match-detail .badge{display:inline-flex;margin-bottom:2px}
