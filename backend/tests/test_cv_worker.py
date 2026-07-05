@@ -44,6 +44,8 @@ class Collection:
             self.rows.append(row)
         if row:
             row.update(update.get("$set", {}))
+            for key in update.get("$unset", {}):
+                row.pop(key, None)
 
 
 class FakeDB:
@@ -71,3 +73,26 @@ def test_process_queue_item_extracts_and_matches(monkeypatch, tmp_path):
     assert cv["processing_status"] == "done"
     assert "python" in cv["extracted_data"]["skills"]
     assert fake_db.matching_results.rows[0]["overall_score"] > 60
+
+
+def test_process_queue_item_marks_cv_done_before_best_effort_matching(monkeypatch, tmp_path):
+    cv_id, owner_id = ObjectId(), ObjectId()
+    path = tmp_path / "cv.docx"
+    doc = Document()
+    doc.add_paragraph("Candidate Two")
+    doc.add_paragraph("Email: two@example.com")
+    doc.add_paragraph("Python FastAPI 2 years Remote")
+    doc.save(path)
+    cv = {"_id": cv_id, "owner_id": owner_id, "uploaded_by_role": "candidate", "file_path": str(path), "raw_text": "", "extracted_data": {}}
+    bad_job = {"_id": ObjectId(), "status": "open", "title": "Broken", "description": "Python", "required_skills": ["python"]}
+    fake_db = FakeDB(cv, bad_job)
+    fake_db.users = Collection([{"_id": owner_id}])
+    monkeypatch.setattr(cv_worker, "db", fake_db)
+
+    matched_jobs = asyncio.run(cv_worker.process_queue_item({"cv_id": cv_id}))
+
+    assert matched_jobs == 0
+    assert cv["processing_status"] == "done"
+    assert cv["extracted_data"]["email"] == "two@example.com"
+    assert cv["matching_error"]
+    assert fake_db.users.rows[0]["primary_cv_id"] == cv_id

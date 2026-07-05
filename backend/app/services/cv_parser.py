@@ -3,6 +3,25 @@ from pathlib import Path
 import pdfplumber
 from docx import Document
 
+def extract_pdf_ocr(path: str) -> str:
+    try:
+        import fitz
+        import pytesseract
+        from PIL import Image
+    except Exception as exc:
+        raise ValueError("PDF appears scanned; OCR dependencies unavailable") from exc
+    pages = []
+    with fitz.open(path) as doc:
+        for page in doc:
+            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2), alpha=False)
+            image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            text = pytesseract.image_to_string(image, lang="vie+eng")
+            if text.strip():
+                pages.append(text)
+    if not pages:
+        raise ValueError("PDF appears scanned; OCR produced no text")
+    return "\n".join(pages)
+
 SKILLS = {
     "python","fastapi","django","flask","react","vue","angular","javascript","typescript","mongodb","postgresql","mysql","sql",
     "docker","kubernetes","azure","aws","gcp","git","github","gitlab","html","css","tailwind","node","node.js","express","java",
@@ -27,7 +46,8 @@ def extract_text(path: str) -> str:
     suffix = Path(path).suffix.lower()
     if suffix == ".pdf":
         with pdfplumber.open(path) as pdf:
-            return "\n".join(page.extract_text() or "" for page in pdf.pages)
+            text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+        return text if text.strip() else extract_pdf_ocr(path)
     if suffix == ".docx":
         doc = Document(path)
         return "\n".join(p.text for p in doc.paragraphs)
@@ -72,12 +92,12 @@ def extract_phone(text: str):
 
 def extract_years(text: str) -> float:
     lower = text.lower()
-    explicit = [float(y) for y in re.findall(r"(\d+(?:\.\d+)?)\+?\s*(?:years|year|yrs|nam|n?m)", lower)]
+    explicit = [float(y) for y in re.findall(r"(?<![a-z0-9])(?:experience|kinh nghiem|kinh nghiệm)?\s*(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs|năm|nam)(?![a-z])", lower)]
     if explicit:
         return max(explicit)
     ranges = []
-    for start, end in re.findall(r"\b(20\d{2}|19\d{2})\s*(?:-|to)\s*(20\d{2}|present|now|current)\b", lower):
-        end_year = 2026 if end in {"present", "now", "current"} else int(end)
+    for start, end in re.findall(r"\b(20\d{2}|19\d{2})\s*(?:-|to)\s*(20\d{2}|present|now|current|nay)\b", lower):
+        end_year = 2026 if end in {"present", "now", "current", "nay"} else int(end)
         ranges.append(max(end_year - int(start), 0))
     return float(max(ranges, default=0))
 

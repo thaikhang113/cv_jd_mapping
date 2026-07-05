@@ -24,6 +24,8 @@ jobs:
         if: ${{ env.AZURE_CREDENTIALS == '' || env.AZURE_RESOURCE_GROUP == '' || env.AZURE_WEBAPP_NAME == '' || env.AZURE_ACR_NAME == '' || env.AZURE_ACR_LOGIN_SERVER == '' }}
         run: |
           echo "Azure deployment skipped: missing GitHub secrets."
+          echo "### Azure deploy skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "Missing one of: AZURE_CREDENTIALS, AZURE_RESOURCE_GROUP, AZURE_WEBAPP_NAME, AZURE_ACR_NAME, AZURE_ACR_LOGIN_SERVER" >> "$GITHUB_STEP_SUMMARY"
       - uses: azure/login@v2
         if: ${{ env.AZURE_CREDENTIALS != '' && env.AZURE_RESOURCE_GROUP != '' && env.AZURE_WEBAPP_NAME != '' && env.AZURE_ACR_NAME != '' && env.AZURE_ACR_LOGIN_SERVER != '' }}
         with:
@@ -42,8 +44,8 @@ jobs:
           az webapp config container set \
             --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
             --name "${{ secrets.AZURE_WEBAPP_NAME }}" \
-            --docker-custom-image-name "$IMAGE" \
-            --docker-registry-server-url "https://${{ secrets.AZURE_ACR_LOGIN_SERVER }}"
+            --container-image-name "$IMAGE" \
+            --container-registry-url "https://${{ secrets.AZURE_ACR_LOGIN_SERVER }}"
           az webapp restart \
             --resource-group "${{ secrets.AZURE_RESOURCE_GROUP }}" \
             --name "${{ secrets.AZURE_WEBAPP_NAME }}"
@@ -70,6 +72,8 @@ jobs:
         if: ${{ env.VERCEL_TOKEN == '' || env.VERCEL_ORG_ID == '' || env.VERCEL_PROJECT_ID == '' || env.VITE_API_BASE_URL == '' }}
         run: |
           echo "Vercel deployment skipped: missing GitHub secrets."
+          echo "### Vercel deploy skipped" >> "$GITHUB_STEP_SUMMARY"
+          echo "Missing one of: VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, VITE_API_BASE_URL" >> "$GITHUB_STEP_SUMMARY"
       - name: Deploy frontend to Vercel
         if: ${{ env.VERCEL_TOKEN != '' && env.VERCEL_ORG_ID != '' && env.VERCEL_PROJECT_ID != '' && env.VITE_API_BASE_URL != '' }}
         env:
@@ -80,4 +84,7 @@ jobs:
         run: |
           npx vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
           npx vercel build --prod --token="$VERCEL_TOKEN"
-          npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          DEPLOY_URL=$(npx vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN")
+          echo "Vercel URL: $DEPLOY_URL"
+          echo "### Vercel deploy" >> "$GITHUB_STEP_SUMMARY"
+          echo "$DEPLOY_URL" >> "$GITHUB_STEP_SUMMARY"

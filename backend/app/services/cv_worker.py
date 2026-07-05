@@ -47,32 +47,34 @@ async def process_queue_item(item):
         raise ValueError("CV not found")
     raw_text = extract_text(cv["file_path"])
     extracted_data = parse_cv_text(raw_text)
+    done_at = now_utc()
     await db.cvs.update_one(
         {"_id": cv["_id"]},
-        {"$set": {"raw_text": raw_text, "extracted_data": extracted_data, "processing_status": "processing", "updated_at": now_utc()}},
+        {"$set": {"raw_text": raw_text, "extracted_data": extracted_data, "processing_status": "done", "updated_at": done_at}, "$unset": {"processing_error": ""}},
     )
-    processed_cv = {**cv, "raw_text": raw_text, "extracted_data": extracted_data}
-    matched_jobs = 0
-    async for job in db.jobs.find({"status": "open"}):
-        result = compute_match(processed_cv, job)
-        result.update({
-            "job_id": job["_id"],
-            "cv_id": cv["_id"],
-            "recruiter_id": job["recruiter_id"],
-            "created_at": now_utc(),
-            "updated_at": now_utc(),
-        })
-        await db.matching_results.update_one(
-            {"job_id": job["_id"], "cv_id": cv["_id"]},
-            {"$set": result},
-            upsert=True,
-        )
-        await rank_job_matches(job["_id"])
-        matched_jobs += 1
-    done_at = now_utc()
-    await db.cvs.update_one({"_id": cv["_id"]}, {"$set": {"processing_status": "done", "updated_at": done_at}})
     if cv.get("uploaded_by_role") == "candidate":
         await db.users.update_one({"_id": cv["owner_id"]}, {"$set": {"primary_cv_id": cv["_id"], "updated_at": done_at}})
+    processed_cv = {**cv, "raw_text": raw_text, "extracted_data": extracted_data, "processing_status": "done"}
+    matched_jobs = 0
+    try:
+        async for job in db.jobs.find({"status": "open"}):
+            result = compute_match(processed_cv, job)
+            result.update({
+                "job_id": job["_id"],
+                "cv_id": cv["_id"],
+                "recruiter_id": job["recruiter_id"],
+                "created_at": now_utc(),
+                "updated_at": now_utc(),
+            })
+            await db.matching_results.update_one(
+                {"job_id": job["_id"], "cv_id": cv["_id"]},
+                {"$set": result},
+                upsert=True,
+            )
+            await rank_job_matches(job["_id"])
+            matched_jobs += 1
+    except Exception as exc:
+        await db.cvs.update_one({"_id": cv["_id"]}, {"$set": {"matching_error": str(exc), "updated_at": now_utc()}})
     return matched_jobs
 
 

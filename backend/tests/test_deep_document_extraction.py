@@ -120,3 +120,20 @@ def test_parse_jd_text_uses_responsibilities_for_required_skills():
     data = parse_jd_text(text)
     assert {"python", "fastapi", "mongodb", "docker", "azure"}.issubset(set(data["required_skills"]))
     assert "react" in data["nice_to_have_skills"]
+
+
+def test_parse_cv_text_does_not_count_github_digits_as_years():
+    text = """
+    ?? Anh Ki?t
+    Email: kiet.hpbp@gmail.com - Phone: 0352753019
+    Github: https://github.com/BirdBB27
+    K? N?NG
+    Machine Learning, Deep Learning, Python, SQL, React, MongoDB
+    H?C V?N
+    Tr??ng ??i h?c Qu?n l? v? C?ng ngh? - C?ng ngh? th?ng tin / Chuy?n ng?nh 2023 - Nay
+    """
+    data = parse_cv_text(text)
+    assert data["email"] == "kiet.hpbp@gmail.com"
+    assert data["phone"] == "0352753019"
+    assert {"python", "sql", "react", "mongodb", "machine learning", "deep learning"}.issubset(set(data["skills"]))
+    assert data["experience_years"] != 27
