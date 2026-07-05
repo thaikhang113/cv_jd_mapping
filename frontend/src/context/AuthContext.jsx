@@ -11,8 +11,9 @@ export function AuthProvider({ children }) {
   const save = (data, remember = true) => { clearStoredAuth(); const store = authStore(remember); store.setItem('token', data.access_token); store.setItem('user', JSON.stringify(data.user)); setUser(data.user) }
   const login = async (email, password, remember = true) => save((await api.post('/api/auth/login', { email: email.trim().toLowerCase(), password })).data, remember)
   const register = async (payload, remember = true) => save((await api.post('/api/auth/register', { ...payload, email: payload.email.trim().toLowerCase() })).data, remember)
+  const updateProfile = async (payload) => { const { data } = await api.put('/api/users/me', payload); const remember = Boolean(localStorage.getItem('token')); authStore(remember).setItem('user', JSON.stringify(data)); setUser(data); return data }
   const logout = () => { clearStoredAuth(); setUser(null) }
   useEffect(() => { if (getStoredToken()) api.get('/api/auth/me').then(r => { const remember = Boolean(localStorage.getItem('token')); authStore(remember).setItem('user', JSON.stringify(r.data)); setUser(r.data) }).catch(logout).finally(() => setLoading(false)) }, [])
-  return <AuthContext.Provider value={{ user, loading, login, register, logout }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, loading, login, register, updateProfile, logout }}>{children}</AuthContext.Provider>
 }
 export const useAuth = () => useContext(AuthContext)

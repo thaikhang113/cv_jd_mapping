@@ -7,6 +7,26 @@ from app.schemas.common import ApplicationIn, StatusIn
 STATUSES = {"applied","shortlisted","interviewing","offered","rejected","hired"}
 router = APIRouter(prefix="/api/applications", tags=["applications"])
 
+async def enrich_applications(rows):
+    job_ids = list({row["job_id"] for row in rows})
+    user_ids = list({row["candidate_id"] for row in rows} | {row["recruiter_id"] for row in rows})
+    jobs = {job["_id"]: job async for job in db.jobs.find({"_id": {"$in": job_ids}})} if job_ids else {}
+    users = {u["_id"]: u async for u in db.users.find({"_id": {"$in": user_ids}}, {"password_hash": 0})} if user_ids else {}
+    enriched = []
+    for row in rows:
+        doc = serialize_doc(row)
+        job = jobs.get(row["job_id"], {})
+        candidate = users.get(row["candidate_id"], {})
+        recruiter = users.get(row["recruiter_id"], {})
+        doc.update({
+            "job_title": job.get("title", doc["job_id"]),
+            "company_name": job.get("company_name", ""),
+            "candidate_name": candidate.get("name", doc["candidate_id"]),
+            "recruiter_name": recruiter.get("name", doc["recruiter_id"]),
+        })
+        enriched.append(doc)
+    return enriched
+
 @router.post("")
 async def apply(payload: ApplicationIn, user=Depends(require_roles("candidate"))):
     job = await db.jobs.find_one({"_id": oid(payload.job_id), "status": "open"})
@@ -31,14 +51,16 @@ async def apply(payload: ApplicationIn, user=Depends(require_roles("candidate"))
 @router.get("/my")
 async def my_apps(user=Depends(get_current_user)):
     query = {"candidate_id": oid(user["id"])} if user["role"] == "candidate" else {"recruiter_id": oid(user["id"])}
-    return [serialize_doc(a) async for a in db.applications.find(query)]
+    rows = [a async for a in db.applications.find(query)]
+    return await enrich_applications(rows)
 
 @router.get("/job/{job_id}")
 async def job_apps(job_id: str, user=Depends(require_roles("recruiter", "admin"))):
     query = {"job_id": oid(job_id)}
     if user["role"] == "recruiter":
         query["recruiter_id"] = oid(user["id"])
-    return [serialize_doc(a) async for a in db.applications.find(query)]
+    rows = [a async for a in db.applications.find(query)]
+    return await enrich_applications(rows)
 
 @router.put("/{application_id}/status")
 async def update_status(application_id: str, payload: StatusIn, user=Depends(require_roles("recruiter", "admin"))):

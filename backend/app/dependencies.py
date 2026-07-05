@@ -55,7 +55,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
             raise credentials_exception
     except JWTError:
         raise credentials_exception
-    user = await db.users.find_one({"_id": oid(user_id)})
+    user = await db.users.find_one({"_id": oid(user_id)}, {"password_hash": 0})
     if not user or user.get("is_blocked"):
         raise credentials_exception
     return serialize_doc(user)

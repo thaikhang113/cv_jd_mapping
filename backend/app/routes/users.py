@@ -8,6 +8,14 @@ router = APIRouter(prefix="/api/users", tags=["users"])
 async def profile(user=Depends(get_current_user)):
     return user
 
+@router.put("/me")
+async def update_profile(payload: dict, user=Depends(get_current_user)):
+    name = str(payload.get("name", "")).strip()
+    if len(name) < 2:
+        raise HTTPException(400, "Name must be at least 2 characters")
+    await db.users.update_one({"_id": oid(user["id"])}, {"$set": {"name": name, "updated_at": now_utc()}})
+    return serialize_doc(await db.users.find_one({"_id": oid(user["id"])}, {"password_hash": 0}))
+
 @router.get("")
 async def users(_: dict = Depends(require_roles("admin"))):
     return [serialize_doc(u) async for u in db.users.find({}, {"password_hash": 0})]
