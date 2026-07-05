@@ -11,7 +11,7 @@ export function clearStoredAuth() {
   sessionStorage.removeItem('user')
 }
 
-const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000' })
+const api = axios.create({ baseURL: import.meta.env.VITE_API_BASE_URL || (location.hostname === 'localhost' ? 'http://localhost:8000' : 'https://cv-match-platform-api-tk2.azurewebsites.net') })
 api.interceptors.request.use((config) => {
   const token = getStoredToken()
   if (token) config.headers.Authorization = `Bearer ${token}`
