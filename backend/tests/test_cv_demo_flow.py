@@ -121,3 +121,7 @@ def test_run_matches_includes_cv_contact_and_sorted(monkeypatch):
     assert rows[0]["cv_email"] == "good@example.com"
     assert rows[0]["cv_phone"] == "1"
     assert "python" in rows[0]["cv_skills"]
+
+def test_extract_phone_does_not_include_location_suffix():
+    data = parse_cv_text("Candidate\nEmail: a@example.com | Phone: 0912345678 | Ho Chi Minh City")
+    assert data["phone"] == "0912345678"

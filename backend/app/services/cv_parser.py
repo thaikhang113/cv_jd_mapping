@@ -77,11 +77,14 @@ def find_skills(text: str):
 
 
 def extract_phone(text: str):
+    number_pattern = r"(?:\+?84|0)\s*(?:\d[\s().-]*){8,10}\d"
     phone_line = re.search(r"(?:phone|tel|mobile|sdt|so dien thoai)\s*[:?-]\s*([^\n]+)", text, re.I)
     candidates = []
     if phone_line:
-        candidates.append(phone_line.group(1).strip())
-    candidates.extend(re.findall(r"(?:\+?84|0)\s*(?:\d[\s().-]*){8,10}\d", text))
+        match = re.search(number_pattern, phone_line.group(1))
+        if match:
+            candidates.append(match.group(0))
+    candidates.extend(re.findall(number_pattern, text))
     for candidate in candidates:
         digits = re.sub(r"\D", "", candidate)
         if digits.startswith("84") and 10 <= len(digits) <= 11:
@@ -89,7 +92,6 @@ def extract_phone(text: str):
         if digits.startswith("0") and 10 <= len(digits) <= 11:
             return candidate.strip()
     return None
-
 def extract_years(text: str) -> float:
     lower = text.lower()
     explicit = [float(y) for y in re.findall(r"(?<![a-z0-9])(?:experience|kinh nghiem|kinh nghiệm)?\s*(\d+(?:\.\d+)?)\+?\s*(?:years?|yrs|năm|nam)(?![a-z])", lower)]
