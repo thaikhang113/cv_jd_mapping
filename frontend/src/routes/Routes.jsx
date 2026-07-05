@@ -12,20 +12,24 @@ import Applications from '../pages/Applications'
 import Messages from '../pages/Messages'
 import Profile from '../pages/Profile'
 import AdminTable from '../pages/AdminTable'
+import JobDetail from '../pages/JobDetail'
+import { NotFound, RouteError } from '../pages/RouteFallback'
 
 const router = createBrowserRouter([
   { path: '/', element: <Navigate to="/login" /> },
   { path: '/login', element: <Login /> },
   { path: '/register', element: <Register /> },
-  { element: <AppLayout />, children: [
+  { element: <AppLayout />, errorElement: <RouteError />, children: [
     { path: '/candidate', element: <Dashboard role="candidate" /> },
     { path: '/candidate/upload-cv', element: <UploadCV /> },
     { path: '/candidate/cv', element: <MyCV /> },
     { path: '/candidate/jobs', element: <Jobs /> },
+    { path: '/candidate/jobs/:jobId', element: <JobDetail /> },
     { path: '/candidate/applications', element: <Applications /> },
     { path: '/recruiter', element: <Dashboard role="recruiter" /> },
     { path: '/recruiter/jobs/new', element: <CreateJob /> },
     { path: '/recruiter/jobs', element: <Jobs mine /> },
+    { path: '/recruiter/jobs/:jobId', element: <JobDetail /> },
     { path: '/recruiter/upload-cvs', element: <UploadCV multiple /> },
     { path: '/recruiter/ranking', element: <Ranking /> },
     { path: '/recruiter/applications', element: <Applications /> },
@@ -37,6 +41,7 @@ const router = createBrowserRouter([
     { path: '/admin/applications', element: <AdminTable type="applications" /> },
     { path: '/messages', element: <Messages /> },
     { path: '/profile', element: <Profile /> },
+    { path: '*', element: <NotFound /> },
   ]}
 ])
 export default function Routes(){ return <RouterProvider router={router} /> }
