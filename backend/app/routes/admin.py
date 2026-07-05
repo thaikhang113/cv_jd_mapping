@@ -1,6 +1,7 @@
-﻿from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends
 from app.database import db
 from app.dependencies import require_roles, serialize_doc
+from app.routes.applications import enrich_applications
 
 router = APIRouter(prefix="/api/admin", tags=["admin"], dependencies=[Depends(require_roles("admin"))])
 
@@ -17,4 +18,6 @@ async def jobs(): return [serialize_doc(x) async for x in db.jobs.find({})]
 @router.get("/matches")
 async def matches(): return [serialize_doc(x) async for x in db.matching_results.find({})]
 @router.get("/applications")
-async def applications(): return [serialize_doc(x) async for x in db.applications.find({})]
+async def applications():
+    rows = [x async for x in db.applications.find({})]
+    return await enrich_applications(rows)
