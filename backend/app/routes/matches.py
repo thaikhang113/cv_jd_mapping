@@ -13,7 +13,7 @@ async def run_matches(payload: dict, user=Depends(require_roles("recruiter", "ad
         raise HTTPException(404, "Job not found")
     if user["role"] != "admin" and str(job["recruiter_id"]) != user["id"]:
         raise HTTPException(403, "Forbidden")
-    query = {} if user["role"] == "admin" else {"owner_id": oid(user["id"])}
+    query = {"processing_status": "done"}
     rows = []
     async for cv in db.cvs.find(query):
         result = compute_match(cv, job)

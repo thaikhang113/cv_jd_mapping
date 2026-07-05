@@ -33,10 +33,19 @@ async def apply(payload: ApplicationIn, user=Depends(require_roles("candidate"))
     if not job:
         raise HTTPException(404, "Open job not found")
     cv_id = oid(payload.cv_id) if payload.cv_id else None
-    if not cv_id:
-        cv = await db.cvs.find_one({"owner_id": oid(user["id"])})
+    if cv_id:
+        cv = await db.cvs.find_one({"_id": cv_id, "owner_id": oid(user["id"]), "processing_status": "done"})
         if not cv:
-            raise HTTPException(400, "Upload CV first")
+            raise HTTPException(400, "Processed CV not found")
+    else:
+        primary_cv_id = user.get("primary_cv_id")
+        cv = None
+        if primary_cv_id:
+            cv = await db.cvs.find_one({"_id": oid(primary_cv_id), "owner_id": oid(user["id"]), "processing_status": "done"})
+        if not cv:
+            cv = await db.cvs.find_one({"owner_id": oid(user["id"]), "processing_status": "done"}, sort=[("updated_at", -1)])
+        if not cv:
+            raise HTTPException(400, "Select a primary CV before applying")
         cv_id = cv["_id"]
     doc = {"job_id": job["_id"], "candidate_id": oid(user["id"]), "cv_id": cv_id, "recruiter_id": job["recruiter_id"], "status": "applied", "created_at": now_utc(), "updated_at": now_utc()}
     try:

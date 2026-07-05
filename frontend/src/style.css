@@ -289,3 +289,15 @@ a:hover { text-decoration: underline; }
 .demo-logins button:hover{background:var(--primary-soft)}
 .match-detail{display:flex;flex-direction:column;gap:6px;min-width:320px}
 .match-detail .badge{display:inline-flex;margin-bottom:2px}
+
+/* PRIMARY CV + WORKFLOW ACTIONS */
+.page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.eyebrow{margin:0 0 6px;color:var(--primary);font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em}
+.muted{color:var(--text-muted)}
+.cv-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.cv-card.primary{border-color:var(--accent);box-shadow:0 0 0 3px rgba(22,163,74,.12)}
+.cv-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.detail-actions{margin-top:18px}
+.grid.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+@media (max-width:768px){.page-head{display:block}.grid.two{grid-template-columns:1fr}.row-actions{align-items:stretch}.row-actions .btn,.row-actions button{width:100%;justify-content:center}}

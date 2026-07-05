@@ -10,10 +10,21 @@ async def profile(user=Depends(get_current_user)):
 
 @router.put("/me")
 async def update_profile(payload: dict, user=Depends(get_current_user)):
-    name = str(payload.get("name", "")).strip()
-    if len(name) < 2:
-        raise HTTPException(400, "Name must be at least 2 characters")
-    await db.users.update_one({"_id": oid(user["id"])}, {"$set": {"name": name, "updated_at": now_utc()}})
+    updates = {"updated_at": now_utc()}
+    if "name" in payload:
+        name = str(payload.get("name", "")).strip()
+        if len(name) < 2:
+            raise HTTPException(400, "Name must be at least 2 characters")
+        updates["name"] = name
+    if "primary_cv_id" in payload:
+        cv_id = oid(payload["primary_cv_id"])
+        cv = await db.cvs.find_one({"_id": cv_id, "owner_id": oid(user["id"]), "processing_status": "done"})
+        if not cv:
+            raise HTTPException(400, "Processed CV not found")
+        updates["primary_cv_id"] = cv_id
+    if len(updates) == 1:
+        raise HTTPException(400, "Nothing to update")
+    await db.users.update_one({"_id": oid(user["id"])}, {"$set": updates})
     return serialize_doc(await db.users.find_one({"_id": oid(user["id"])}, {"password_hash": 0}))
 
 @router.get("")
