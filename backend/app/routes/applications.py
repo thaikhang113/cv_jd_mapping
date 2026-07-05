@@ -1,4 +1,5 @@
-﻿from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from pymongo.errors import DuplicateKeyError
 from app.database import db
 from app.dependencies import get_current_user, require_roles, oid, serialize_doc, now_utc
 from app.schemas.common import ApplicationIn, StatusIn
@@ -18,8 +19,14 @@ async def apply(payload: ApplicationIn, user=Depends(require_roles("candidate"))
             raise HTTPException(400, "Upload CV first")
         cv_id = cv["_id"]
     doc = {"job_id": job["_id"], "candidate_id": oid(user["id"]), "cv_id": cv_id, "recruiter_id": job["recruiter_id"], "status": "applied", "created_at": now_utc(), "updated_at": now_utc()}
-    result = await db.applications.insert_one(doc)
-    return serialize_doc(await db.applications.find_one({"_id": result.inserted_id}))
+    try:
+        result = await db.applications.insert_one(doc)
+        return serialize_doc(await db.applications.find_one({"_id": result.inserted_id}))
+    except DuplicateKeyError:
+        existing = await db.applications.find_one({"job_id": job["_id"], "candidate_id": oid(user["id"])})
+        if existing:
+            return serialize_doc(existing)
+        raise
 
 @router.get("/my")
 async def my_apps(user=Depends(get_current_user)):

@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from app.database import db
 from app.dependencies import get_current_user, require_roles, oid, serialize_doc, now_utc
 from app.services.matching import compute_match
@@ -33,5 +33,13 @@ async def job_matches(job_id: str, user=Depends(get_current_user)):
 
 @router.get("/my")
 async def my_matches(user=Depends(get_current_user)):
-    query = {"recruiter_id": oid(user["id"])} if user["role"] == "recruiter" else {}
+    if user["role"] == "candidate":
+        cv_ids = [cv["_id"] async for cv in db.cvs.find({"owner_id": oid(user["id"])}, {"_id": 1})]
+        if not cv_ids:
+            return []
+        query = {"cv_id": {"$in": cv_ids}}
+    elif user["role"] == "recruiter":
+        query = {"recruiter_id": oid(user["id"])}
+    else:
+        query = {}
     return [serialize_doc(r) async for r in db.matching_results.find(query).sort("overall_score", -1)]
