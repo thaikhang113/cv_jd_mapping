@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react'
+﻿import { useEffect, useState, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import api from '../api/axiosClient'
 import { MessageSquare } from 'lucide-react'
@@ -8,7 +8,7 @@ export default function Messages() {
   const [convos,setConvos]=useState([]); const [active,setActive]=useState(null); const [msgs,setMsgs]=useState([]); const [text,setText]=useState('')
   const boxRef = useRef(null)
   useEffect(()=>{api.get('/api/conversations/my').then(r=>setConvos(r.data))},[])
-  useEffect(()=>{const id=params.get('conversation'); if(id&&convos.length){const c=convos.find(x=>x.id===id); if(c) open(c)}},[params,convos])
+  useEffect(()=>{const id=params.get('conversation'); if(!id)return; const found=convos.find(x=>x.id===id); if(found) open(found); else api.get('/api/conversations/'+id).then(r=>{setConvos(prev=>prev.some(c=>c.id===r.data.id)?prev:[r.data,...prev]); open(r.data)}).catch(()=>{})},[params,convos])
   useEffect(()=>{if(boxRef.current) boxRef.current.scrollTop = boxRef.current.scrollHeight},[msgs])
   async function open(c){setActive(c);const d=(await api.get('/api/messages/'+c.id)).data;setMsgs(d)}
   async function send(){if(!active||!text.trim())return;await api.post('/api/messages',{conversation_id:active.id,content:text.trim()});setText('');const refreshed=(await api.get('/api/conversations/my')).data;setConvos(refreshed);open(active)}
