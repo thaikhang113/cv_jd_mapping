@@ -48,7 +48,7 @@ class Collection:
 
 def test_parse_cv_reads_contact_and_vietnamese_skill_heading():
     text = """
-    Nguyen Van A
+    Nguyen Van A 1783255350398
     Email: example@gmail.com
     Phone: 0912 345 678
     Ky nang

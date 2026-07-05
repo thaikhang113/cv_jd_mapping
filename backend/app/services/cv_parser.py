@@ -56,6 +56,20 @@ def find_skills(text: str):
     return sorted(skill for skill in SKILLS if re.search(rf"(?<![a-z0-9+#.]){re.escape(skill)}(?![a-z0-9+#])", lower))
 
 
+def extract_phone(text: str):
+    phone_line = re.search(r"(?:phone|tel|mobile|sdt|so dien thoai)\s*[:?-]\s*([^\n]+)", text, re.I)
+    candidates = []
+    if phone_line:
+        candidates.append(phone_line.group(1).strip())
+    candidates.extend(re.findall(r"(?:\+?84|0)\s*(?:\d[\s().-]*){8,10}\d", text))
+    for candidate in candidates:
+        digits = re.sub(r"\D", "", candidate)
+        if digits.startswith("84") and 10 <= len(digits) <= 11:
+            return candidate.strip()
+        if digits.startswith("0") and 10 <= len(digits) <= 11:
+            return candidate.strip()
+    return None
+
 def extract_years(text: str) -> float:
     lower = text.lower()
     explicit = [float(y) for y in re.findall(r"(\d+(?:\.\d+)?)\+?\s*(?:years|year|yrs|nam|n?m)", lower)]
@@ -110,7 +124,7 @@ def parse_cv_text(text: str) -> dict:
     lines = clean_lines(text)
     lower = text.lower()
     email = re.search(r"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", text)
-    phone = re.search(r"(\+?\d[\d\s().-]{7,}\d)", text)
+    phone = extract_phone(text)
     skills = find_skills(text)
     work = parse_work_experiences(sections.get("experience", []))
     projects = parse_projects(sections.get("projects", []))
@@ -121,7 +135,7 @@ def parse_cv_text(text: str) -> dict:
     return {
         "name": lines[0][:80] if lines else None,
         "email": email.group(0) if email else None,
-        "phone": phone.group(0) if phone else None,
+        "phone": phone,
         "summary": " ".join(sections.get("summary", [])[:3]) or None,
         "skills": skills,
         "tools": sorted(set(skills) & TOOLS),
