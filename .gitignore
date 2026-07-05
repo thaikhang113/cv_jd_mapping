@@ -9,3 +9,4 @@ frontend/dist/
 .vscode/
 .DS_Store
 .pytest_cache/
+.vercel
