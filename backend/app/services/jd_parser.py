@@ -79,9 +79,11 @@ def parse_jd_text(text: str) -> dict:
     location = field_value(header, "location") or next((line for line in lines if any(x in line.lower() for x in ["ho chi minh", "hanoi", "remote", "hybrid"])), "")
     salary = field_value(header, "salary")
     job_type = field_value(header, "job type") or "Full-time"
+    header_text = "\n".join(header)
+    resp_text = "\n".join(sections.get("responsibilities", []))
     req_text = "\n".join(sections.get("requirements", []))
     nice_text = "\n".join(sections.get("nice_to_have", []))
-    required_skills = find_skills(req_text or text)
+    required_skills = find_skills("\n".join([header_text, resp_text, req_text]) or text)
     nice = [s for s in find_skills(nice_text) if s not in required_skills]
     years = re.findall(r"(\d+(?:\.\d+)?)\+?\s*(?:years|year|yrs|nam)", text.lower())
     responsibilities = bullets(sections.get("responsibilities", []))

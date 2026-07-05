@@ -102,3 +102,21 @@ def test_compute_match_uses_deep_fields_and_evidence():
     assert result["seniority_match"] is True
     assert result["relevant_experience_years"] == 5
     assert result["evidence_snippets"]
+
+
+
+def test_parse_jd_text_uses_responsibilities_for_required_skills():
+    text = """
+    Backend Engineer
+    Company: Demo
+    Responsibilities
+    - Build APIs with Python and FastAPI.
+    - Deploy MongoDB using Docker and Azure.
+    Requirements
+    - 3+ years backend experience.
+    Nice to have
+    - React.
+    """
+    data = parse_jd_text(text)
+    assert {"python", "fastapi", "mongodb", "docker", "azure"}.issubset(set(data["required_skills"]))
+    assert "react" in data["nice_to_have_skills"]
