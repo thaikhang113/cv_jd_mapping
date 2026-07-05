@@ -10,6 +10,8 @@ async def ping_db():
 async def ensure_indexes():
     await db.users.create_index("email", unique=True)
     await db.cvs.create_index("owner_id")
+    await db.cv_processing_queue.create_index("cv_id", unique=True)
+    await db.cv_processing_queue.create_index([("status", 1), ("created_at", 1)])
     await db.jobs.create_index("recruiter_id")
     await db.matching_results.create_index([("job_id", 1), ("cv_id", 1)], unique=True)
     await db.applications.create_index([("job_id", 1), ("candidate_id", 1)], unique=True)

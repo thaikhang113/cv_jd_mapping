@@ -8,6 +8,8 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 1440
     frontend_url: str = "http://localhost:5173"
     upload_dir: str = "uploads"
+    cv_worker_count: int = 2
+    cv_worker_poll_seconds: float = 2.0
 
     class Config:
         env_file = ".env"

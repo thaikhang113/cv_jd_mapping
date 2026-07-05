@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, File, UploadFile, HTTPException
 from app.config import settings
 from app.database import db
 from app.dependencies import get_current_user, require_roles, oid, serialize_doc, now_utc
-from app.services.cv_parser import extract_text, parse_cv_text
+from app.services.cv_worker import enqueue_cv
 
 router = APIRouter(prefix="/api/cvs", tags=["cvs"])
 
@@ -17,10 +17,22 @@ async def save_cv(file: UploadFile, user: dict):
     safe_name = f"{uuid4().hex}{suffix}"
     path = upload_dir / safe_name
     path.write_bytes(await file.read())
-    raw_text = extract_text(str(path))
-    doc = {"owner_id": oid(user["id"]), "uploaded_by_role": user["role"], "filename": file.filename, "file_path": str(path), "raw_text": raw_text, "extracted_data": parse_cv_text(raw_text), "created_at": now_utc(), "updated_at": now_utc()}
+    doc = {
+        "owner_id": oid(user["id"]),
+        "uploaded_by_role": user["role"],
+        "filename": file.filename,
+        "file_path": str(path),
+        "raw_text": "",
+        "extracted_data": {},
+        "processing_status": "queued",
+        "created_at": now_utc(),
+        "updated_at": now_utc(),
+    }
     result = await db.cvs.insert_one(doc)
-    return serialize_doc(await db.cvs.find_one({"_id": result.inserted_id}))
+    await enqueue_cv(result.inserted_id, oid(user["id"]))
+    cv = serialize_doc(await db.cvs.find_one({"_id": result.inserted_id}))
+    cv["queued"] = True
+    return cv
 
 @router.post("/upload")
 async def upload_cv(file: UploadFile = File(...), user=Depends(require_roles("candidate", "recruiter", "admin"))):
