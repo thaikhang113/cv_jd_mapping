@@ -28,10 +28,22 @@ class JobIn(BaseModel):
     company_name: str
     location: str
     required_skills: List[str] = []
+    nice_to_have_skills: List[str] = []
     required_experience: float = 0
     salary_range: Optional[str] = None
     description: str
     status: str = "open"
+    category: Optional[str] = None
+    seniority: Optional[str] = None
+    job_type: Optional[str] = None
+    work_mode: Optional[str] = None
+    responsibilities: List[str] = []
+    requirements: List[str] = []
+    benefits: List[str] = []
+    education_requirements: List[str] = []
+    raw_text: Optional[str] = None
+    parsed_sections: dict = {}
+    parse_confidence: float = 0
 
 class ApplicationIn(BaseModel):
     job_id: str

@@ -10,3 +10,6 @@ frontend/dist/
 .DS_Store
 .pytest_cache/
 .vercel
+
+.test-venv/
+.serena/
