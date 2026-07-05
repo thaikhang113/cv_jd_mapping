@@ -18,9 +18,10 @@ jobs:
           python-version: "3.11"
           cache: pip
           cache-dependency-path: backend/requirements.txt
+      - run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-vie
       - run: python -m pip install --upgrade pip
       - run: pip install -r requirements.txt
-      - run: PYTHONPATH=. pytest -q
+      - run: PYTHONPATH=. python -m pytest -q
 
   frontend:
     runs-on: ubuntu-latest
