@@ -1,4 +1,4 @@
-﻿from bson import ObjectId
+from bson import ObjectId
 import asyncio
 from app.routes import applications, matches
 from app.schemas.common import ApplicationIn
@@ -44,6 +44,7 @@ def test_apply_uses_primary_processed_cv(monkeypatch):
     fake_db.jobs = Collection([{"_id": job_id, "status": "open", "recruiter_id": recruiter_id}])
     fake_db.cvs = Collection([{"_id": primary_cv_id, "owner_id": user_id, "processing_status": "done"}])
     fake_db.applications = Collection([])
+    fake_db.matching_results = Collection([])
     monkeypatch.setattr(applications, "db", fake_db)
 
     row = asyncio.run(applications.apply(ApplicationIn(job_id=str(job_id)), {"id": str(user_id), "primary_cv_id": str(primary_cv_id)}))

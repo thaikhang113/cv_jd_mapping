@@ -84,6 +84,7 @@ def test_reapply_updates_existing_application_to_current_cv(monkeypatch):
     fake_db.jobs = Collection([{"_id": job_id, "status": "open", "recruiter_id": recruiter_id}])
     fake_db.cvs = Collection([{"_id": new_cv_id, "owner_id": user_id, "processing_status": "done"}, {"_id": old_cv_id, "owner_id": user_id, "processing_status": "done"}])
     fake_db.applications = Collection([{"_id": app_id, "job_id": job_id, "candidate_id": user_id, "cv_id": old_cv_id, "recruiter_id": recruiter_id, "status": "applied"}], unique=["job_id", "candidate_id"])
+    fake_db.matching_results = Collection([])
     monkeypatch.setattr(applications, "db", fake_db)
     row = asyncio.run(applications.apply(ApplicationIn(job_id=str(job_id)), {"id": str(user_id), "primary_cv_id": str(new_cv_id)}))
     assert row["id"] == str(app_id)

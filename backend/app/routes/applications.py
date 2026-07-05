@@ -3,9 +3,20 @@ from pymongo.errors import DuplicateKeyError
 from app.database import db
 from app.dependencies import get_current_user, require_roles, oid, serialize_doc, now_utc
 from app.schemas.common import ApplicationIn, StatusIn
+from app.services.matching import compute_match
 
 STATUSES = {"applied","shortlisted","interviewing","offered","rejected","hired"}
 router = APIRouter(prefix="/api/applications", tags=["applications"])
+async def upsert_application_match(job, cv):
+    result = compute_match(cv, job)
+    result.update({
+        "job_id": job["_id"],
+        "cv_id": cv["_id"],
+        "recruiter_id": job["recruiter_id"],
+        "created_at": now_utc(),
+        "updated_at": now_utc(),
+    })
+    await db.matching_results.update_one({"job_id": job["_id"], "cv_id": cv["_id"]}, {"$set": result}, upsert=True)
 
 async def enrich_applications(rows):
     job_ids = list({row["job_id"] for row in rows})
@@ -60,6 +71,7 @@ async def apply(payload: ApplicationIn, user=Depends(require_roles("candidate"))
     doc = {"job_id": job["_id"], "candidate_id": oid(user["id"]), "cv_id": cv_id, "recruiter_id": job["recruiter_id"], "status": "applied", "created_at": now_utc(), "updated_at": now_utc()}
     try:
         result = await db.applications.insert_one(doc)
+        await upsert_application_match(job, cv)
         return serialize_doc(await db.applications.find_one({"_id": result.inserted_id}))
     except DuplicateKeyError:
         existing = await db.applications.find_one({"job_id": job["_id"], "candidate_id": oid(user["id"])})
@@ -68,6 +80,7 @@ async def apply(payload: ApplicationIn, user=Depends(require_roles("candidate"))
                 {"_id": existing["_id"]},
                 {"$set": {"cv_id": cv_id, "recruiter_id": job["recruiter_id"], "updated_at": now_utc()}},
             )
+            await upsert_application_match(job, cv)
             return serialize_doc(await db.applications.find_one({"_id": existing["_id"]}))
         raise
 
