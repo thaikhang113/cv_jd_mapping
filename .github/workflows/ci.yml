@@ -24,7 +24,7 @@ jobs:
       - name: Run backend tests
         run: |
           set +e
-          PYTHONPATH=. python -m pytest -q > pytest.log 2>&1
+          PYTHONPATH=. python -m pytest tests -q > pytest.log 2>&1
           status=$?
           cat pytest.log
           if [ $status -ne 0 ]; then
