@@ -47,6 +47,10 @@ class Collection:
             for key in update.get("$unset", {}):
                 row.pop(key, None)
 
+    async def bulk_write(self, ops, ordered=False):
+        for op in ops:
+            await self.update_one(op._filter, op._doc)
+
 
 class FakeDB:
     def __init__(self, cv, job):

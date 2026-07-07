@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 1440
     frontend_url: str = "http://localhost:5173"
     upload_dir: str = "uploads"
+    max_cv_file_bytes: int = 10 * 1024 * 1024
     cv_worker_count: int = 2
     cv_worker_poll_seconds: float = 2.0
 

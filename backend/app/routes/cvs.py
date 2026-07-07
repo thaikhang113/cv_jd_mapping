@@ -9,15 +9,24 @@ from app.services.cv_worker import enqueue_cv
 
 router = APIRouter(prefix="/api/cvs", tags=["cvs"])
 
+def limit_label(size):
+    if size % (1024 * 1024) == 0:
+        return f"{size // (1024 * 1024)} MB"
+    return f"{size} bytes"
+
 async def save_cv(file: UploadFile, user: dict):
     suffix = Path(file.filename).suffix.lower()
     if suffix not in {".pdf", ".docx"}:
         raise HTTPException(400, "Only PDF/DOCX supported")
-    upload_dir = Path(settings.upload_dir)
+    upload_dir = Path(settings.upload_dir).resolve()
     upload_dir.mkdir(parents=True, exist_ok=True)
     safe_name = f"{uuid4().hex}{suffix}"
     path = upload_dir / safe_name
-    path.write_bytes(await file.read())
+    max_size = settings.max_cv_file_bytes
+    data = await file.read(max_size + 1)
+    if len(data) > max_size:
+        raise HTTPException(413, f"File exceeds {limit_label(max_size)} limit")
+    path.write_bytes(data)
     created_at = now_utc()
     raw_text = ""
     extracted_data = {}

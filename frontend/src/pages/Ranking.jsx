@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import api from '../api/axiosClient'
 import { BarChart3 } from 'lucide-react'
+import MatchReport from '../components/MatchReport'
 
 const EMPTY = []
 function ProgressBar({ score }) {
@@ -12,12 +13,13 @@ function ProgressBar({ score }) {
 function Badges({ values = EMPTY, cls = 'badge' }) { return values.length ? values.slice(0, 8).map(s => <span key={s} className={cls} style={{marginRight:4,marginBottom:2}}>{s}</span>) : <span className="muted">No skills detected</span> }
 
 export default function Ranking() {
-  const [jobs,setJobs]=useState([]); const [job,setJob]=useState(''); const [rows,setRows]=useState([]); const [run,setRun]=useState(false)
+  const [jobs,setJobs]=useState([]); const [job,setJob]=useState(''); const [rows,setRows]=useState([]); const [run,setRun]=useState(false); const [selected,setSelected]=useState(null)
   useEffect(()=>{api.get('/api/jobs/my').then(r=>setJobs(r.data))},[])
-  async function runMatch(){setRun(true);const r=await api.post('/api/matches/run',{job_id:job});setRows(r.data);setRun(false)}
+  const selectedJob = jobs.find(j => j.id === job)
+  async function runMatch(){setRun(true);const r=await api.post('/api/matches/run',{job_id:job});setRows(r.data);setSelected(r.data[0] || null);setRun(false)}
   return <section><h1>Candidate Ranking</h1>
     <div style={{display:'flex',gap:12,marginBottom:24}}><select value={job} onChange={e=>setJob(e.target.value)} style={{maxWidth:400}}><option value="">Select a job</option>{jobs.map(j=><option key={j.id} value={j.id}>{j.title}</option>)}</select><button type="button" className="btn btn-primary" disabled={!job||run} onClick={runMatch}>{run?'Running...':'Run Matching'}</button></div>
     {rows.length===0 ? <div className="empty-state"><BarChart3 size={48} strokeWidth={1.5}/><h3>No matching results</h3><p>Select a job and click Run Matching to see ranking</p></div>
-    : <div className="table-wrap"><table><thead><tr><th>Rank</th><th>Score</th><th>Candidate</th><th>CV Skills</th><th>Matched / Missing</th><th>Match</th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.cv_id}><td style={{fontWeight:700,fontFamily:'Poppins'}}>#{r.rank||i+1}</td><td style={{minWidth:200}}><ProgressBar score={Math.round(r.overall_score)}/></td><td><b>{r.cv_name || r.candidate_name || 'Candidate'}</b><br/><span className="muted">{r.cv_email || 'No email'} - {r.cv_phone || 'No phone'}</span><br/><span className="muted">{r.cv_filename}</span></td><td><Badges values={r.cv_skills || []} cls="badge" /></td><td><Badges values={r.matched_skills||[]} cls="badge badge-success" />{(r.missing_skills||[]).length>0&&<div style={{marginTop:4}}><Badges values={r.missing_skills||[]} cls="badge badge-danger" /></div>}</td><td>{r.experience_match?'Yrs OK':'Yrs gap'} - {r.location_match?'Location OK':'Location gap'}</td></tr>)}</tbody></table></div>}
+    : <><div className="table-wrap"><table><thead><tr><th>Rank</th><th>Score</th><th>Candidate</th><th>CV Skills</th><th>Matched / Missing</th><th>Match</th><th>Report</th></tr></thead><tbody>{rows.map((r,i)=><tr key={r.cv_id} className={selected?.cv_id===r.cv_id?'selected-row':''}><td style={{fontWeight:700,fontFamily:'Poppins'}}>#{r.rank||i+1}</td><td style={{minWidth:200}}><ProgressBar score={Math.round(r.overall_score)}/></td><td><b>{r.cv_name || r.candidate_name || 'Candidate'}</b><br/><span className="muted">{r.cv_email || 'No email'} - {r.cv_phone || 'No phone'}</span><br/><span className="muted">{r.cv_filename}</span></td><td><Badges values={r.cv_skills || []} cls="badge" /></td><td><Badges values={r.matched_skills||[]} cls="badge badge-success" />{(r.missing_skills||[]).length>0&&<div style={{marginTop:4}}><Badges values={r.missing_skills||[]} cls="badge badge-danger" /></div>}</td><td>{r.experience_match?'Yrs OK':'Yrs gap'} - {r.location_match?'Location OK':'Location gap'}</td><td><button type="button" className="btn btn-primary btn-sm" onClick={()=>setSelected(r)}>Xem report</button></td></tr>)}</tbody></table></div>{selected&&<MatchReport match={selected} jobTitle={selectedJob?.title} companyName={selectedJob?.company_name} />}</>}
   </section>
 }

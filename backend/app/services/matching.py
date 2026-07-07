@@ -42,6 +42,101 @@ def snippets(cv, job, matched):
     return out
 
 
+def count_in_text(text, term):
+    return text.lower().count(term.lower()) if term else 0
+
+
+def make_skill_items(cv_text, job_text, job_skills, nice_skills, cv_skills):
+    items = []
+    for skill in sorted(job_skills):
+        matched = skill in cv_skills
+        items.append({
+            "skill": skill,
+            "kind": "required",
+            "required": True,
+            "jd_count": max(1, count_in_text(job_text, skill)),
+            "cv_count": count_in_text(cv_text, skill),
+            "status": "matched" if matched else "missing",
+        })
+    for skill in sorted(nice_skills - job_skills):
+        matched = skill in cv_skills
+        items.append({
+            "skill": skill,
+            "kind": "nice",
+            "required": False,
+            "jd_count": max(1, count_in_text(job_text, skill)),
+            "cv_count": count_in_text(cv_text, skill),
+            "status": "matched" if matched else "missing",
+        })
+    return items
+
+
+def section(title, description, suggestion_count, items=None, passed_text="ĐẠT"):
+    return {
+        "title": title,
+        "description": description,
+        "suggestion_count": suggestion_count,
+        "status": "complete" if suggestion_count == 0 else "needs_work",
+        "badge": passed_text if suggestion_count == 0 else f"{suggestion_count} đề xuất",
+        "items": items or [],
+    }
+
+
+def build_report(cv, job, result, cv_skills, job_skills, nice_skills, cv_exp, req_exp, location_match):
+    cv_data = cv.get("extracted_data", {})
+    cv_text = cv.get("raw_text", "")
+    job_text = f"{job.get('title','')} {job.get('description','')} {' '.join(job.get('required_skills', []))} {' '.join(job.get('nice_to_have_skills', []))}"
+    skill_items = make_skill_items(cv_text, job_text, job_skills, nice_skills, cv_skills)
+    missing_nice = sorted(nice_skills - cv_skills)
+    skill_suggestions = len(result["missing_skills"]) + len(missing_nice)
+    profile_items = []
+    for key, label in [("name", "Tên"), ("email", "Email"), ("phone", "Điện thoại")]:
+        if not cv_data.get(key):
+            profile_items.append({"label": label, "status": "missing", "message": f"Thiếu {label.lower()} trong CV."})
+    format_items = []
+    if len(cv_text) > 4500:
+        format_items.append({"label": "Độ dài CV", "status": "needs_work", "message": "CV hơi dài; nên rút gọn các phần ít liên quan."})
+    if "\n" not in cv_text and len(cv_text) > 300:
+        format_items.append({"label": "Gạch đầu dòng", "status": "needs_work", "message": "Nên tách ý thành dòng ngắn để dễ đọc hơn."})
+
+    strengths = []
+    if result["matched_skills"]:
+        strengths.append(f"Kỹ năng phù hợp: {', '.join(result['matched_skills'][:4])}.")
+    if cv_exp >= req_exp:
+        strengths.append("Kinh nghiệm đáp ứng yêu cầu chính của JD.")
+    if location_match:
+        strengths.append("Địa điểm hoặc hình thức làm việc phù hợp.")
+    if not strengths:
+        strengths.append("CV có dữ liệu đủ để bắt đầu so khớp với JD.")
+
+    improvements = []
+    if result["missing_skills"]:
+        improvements.append(f"Bổ sung hoặc làm nổi bật: {', '.join(result['missing_skills'][:5])}.")
+    if cv_exp < req_exp:
+        improvements.append("Làm rõ kinh nghiệm liên quan để giảm khoảng cách số năm yêu cầu.")
+    if not location_match:
+        improvements.append("Nêu rõ khả năng làm việc theo địa điểm hoặc remote nếu phù hợp.")
+    if not improvements:
+        improvements.append("Giữ CV hiện tại và tinh chỉnh từ khóa theo JD khi ứng tuyển.")
+
+    score = round(result["overall_score"])
+    if score >= 75:
+        fit_summary = "CV có mức độ phù hợp tốt với JD và có khả năng vượt qua bước lọc ban đầu."
+    elif score >= 55:
+        fit_summary = "CV có nền tảng phù hợp nhưng cần bổ sung thêm từ khóa và bằng chứng liên quan đến JD."
+    else:
+        fit_summary = "CV còn thiếu nhiều tín hiệu quan trọng so với JD; nên chỉnh kỹ năng và kinh nghiệm nổi bật hơn."
+
+    sections = {
+        "content": section("Nội dung", "Kiểm tra bằng chứng, mức độ liên quan và kết quả định lượng trong CV.", 0 if result["evidence_snippets"] else 1, result["evidence_snippets"]),
+        "skills": section("Kỹ năng", "So sánh kỹ năng trong JD với kỹ năng tìm thấy trong CV.", skill_suggestions, skill_items),
+        "format": section("Định dạng", "Kiểm tra độ dài và cách trình bày để CV dễ đọc hơn.", len(format_items), format_items),
+        "profile": section("Hồ sơ", "Kiểm tra thông tin liên hệ và dữ liệu nhận diện ứng viên.", len(profile_items), profile_items),
+        "style": section("Phong cách", "Đánh giá giọng văn ở mức heuristic dựa trên dữ liệu hiện có.", 0, [{"label": "Giọng văn", "status": "complete", "message": "Không phát hiện vấn đề nổi bật."}]),
+    }
+    return fit_summary, strengths, improvements, sections
+
+
 def compute_match(cv: dict, job: dict) -> dict:
     cv_data = cv.get("extracted_data", {})
     cv_skills = norm_list(cv_data.get("skills", []))
@@ -73,7 +168,7 @@ def compute_match(cv: dict, job: dict) -> dict:
     job_category = job.get("category")
     cv_seniority = infer_cv_seniority(cv_exp)
     job_seniority = job.get("seniority")
-    return {
+    result = {
         "overall_score": min(total, 100),
         "skill_score": skill_score,
         "experience_score": experience_score,
@@ -90,3 +185,11 @@ def compute_match(cv: dict, job: dict) -> dict:
         "seniority_match": bool(job_seniority and cv_seniority == job_seniority),
         "evidence_snippets": snippets(cv, job, matched),
     }
+    fit_summary, strengths, improvements, sections = build_report(cv, job, result, cv_skills, job_skills, nice_skills, cv_exp, req_exp, location_match)
+    result.update({
+        "fit_summary": fit_summary,
+        "strengths": strengths,
+        "improvements": improvements,
+        "sections": sections,
+    })
+    return result

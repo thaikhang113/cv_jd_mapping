@@ -11,7 +11,7 @@ def can_view(item: dict, user: dict) -> bool:
 
 
 @router.get("/status/{cv_id}")
-async def queue_status(cv_id: str, user=Depends(get_current_user)):
+async def queue_status(cv_id: str, include_matches: bool = False, user=Depends(get_current_user)):
     item = await db.cv_processing_queue.find_one({"cv_id": oid(cv_id)})
     if not item:
         raise HTTPException(404, "Queue item not found")
@@ -20,7 +20,8 @@ async def queue_status(cv_id: str, user=Depends(get_current_user)):
     cv = await db.cvs.find_one({"_id": oid(cv_id)})
     payload = serialize_doc(item)
     payload["cv"] = serialize_doc(cv) if cv else None
-    payload["matches"] = [serialize_doc(row) async for row in db.matching_results.find({"cv_id": oid(cv_id)}).sort("overall_score", -1)]
+    if include_matches:
+        payload["matches"] = [serialize_doc(row) async for row in db.matching_results.find({"cv_id": oid(cv_id)}).sort("overall_score", -1)]
     return payload
 
 

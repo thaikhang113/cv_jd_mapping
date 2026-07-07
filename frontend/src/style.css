@@ -289,6 +289,31 @@ a:hover { text-decoration: underline; }
 .demo-logins button:hover{background:var(--primary-soft)}
 .match-detail{display:flex;flex-direction:column;gap:6px;min-width:320px}
 .match-detail .badge{display:inline-flex;margin-bottom:2px}
+.selected-row td{background:var(--background)}
+.match-report{display:grid;grid-template-columns:320px minmax(0,1fr);gap:24px;margin-top:24px;align-items:start}
+.match-sidebar{position:sticky;top:88px;background:var(--card-bg);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;max-height:calc(100vh - 112px);overflow:auto}
+.match-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:-18px -18px 16px;padding:10px 12px;background:var(--muted);border-bottom:1px solid var(--border);font-size:.75rem;color:var(--text-secondary)}
+.score-ring{--score:0deg;width:112px;aspect-ratio:1;border-radius:50%;display:grid;place-items:center;margin:16px 0;background:conic-gradient(var(--accent) var(--score), var(--muted) 0)}
+.score-ring span{display:grid;place-items:center;width:82px;aspect-ratio:1;border-radius:50%;background:var(--card-bg);font:700 2rem Poppins,sans-serif;color:var(--foreground)}
+.score-ring.match-mid{background:conic-gradient(#C8942F var(--score), var(--muted) 0)}
+.score-ring.match-low{background:conic-gradient(#EF4444 var(--score), var(--muted) 0)}
+.match-nav{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.match-nav a{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--muted);color:var(--text-primary)}
+.match-nav a small{color:var(--text-muted);white-space:nowrap}
+.match-nav a.complete small{color:var(--accent);font-weight:700}
+.match-main{min-width:0;display:flex;flex-direction:column;gap:16px}
+.match-main .card:hover{transform:none}
+.match-actions{display:flex;justify-content:flex-end}
+.overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:18px}
+.good-box,.warn-box{border-radius:var(--radius-sm);padding:14px 16px}
+.good-box{background:#E8F5F0}
+.warn-box{background:#FFF7E6}
+[data-theme="dark"] .good-box{background:rgba(22,163,74,.16)}
+[data-theme="dark"] .warn-box{background:rgba(234,179,8,.16)}
+.good-box ul,.warn-box ul,.match-section ul{margin:8px 0 0;padding-left:20px;color:var(--text-secondary)}
+.section-title{display:flex;align-items:flex-start;justify-content:space-between;gap:16px}
+.skill-table{overflow:auto;border:1px solid var(--border);border-radius:var(--radius-sm);margin-top:12px}
+.skill-table table{min-width:620px}
 
 /* PRIMARY CV + WORKFLOW ACTIONS */
 .page-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
@@ -300,12 +325,14 @@ a:hover { text-decoration: underline; }
 .row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .detail-actions{margin-top:18px}
 .grid.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
-@media (max-width:768px){.page-head{display:block}.grid.two{grid-template-columns:1fr}.row-actions{align-items:stretch}.row-actions .btn,.row-actions button{width:100%;justify-content:center}}
+@media (max-width:768px){.page-head{display:block}.grid.two{grid-template-columns:1fr}.row-actions{align-items:stretch}.row-actions .btn,.row-actions button{width:100%;justify-content:center}.match-report{grid-template-columns:1fr}.match-sidebar{position:static;max-height:none}.overview-grid{grid-template-columns:1fr}.section-title{display:block}.match-detail{min-width:0}}
 .file-progress-item { align-items: flex-start; }
 .file-progress-main { flex: 1; min-width: 0; }
 .file-progress-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.batch-progress-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
 .upload-progress { width: 100%; }
 .upload-progress-meta { display: flex; justify-content: space-between; color: var(--text-muted); font-size: 0.8rem; margin-bottom: 4px; }
 .progress-fill.active { background: linear-gradient(90deg, var(--primary), var(--accent)); }
 .progress-fill.complete { background: var(--accent); }
 .progress-fill.failed { background: var(--destructive); }
+@media (max-width:768px){.batch-progress-grid{grid-template-columns:1fr}.file-progress-head{display:block}}
