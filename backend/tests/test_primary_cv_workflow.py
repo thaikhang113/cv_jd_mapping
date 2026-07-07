@@ -36,7 +36,10 @@ class Collection:
         row = await self.find_one(query)
         if not row and upsert:
             row = {"_id": ObjectId(), **query}; self.rows.append(row)
-        if row: row.update(update.get("$set", {}))
+        if row:
+            row.update(update.get("$set", {}))
+            for k, v in update.get("$inc", {}).items():
+                row[k] = row.get(k, 0) + v
 
 def test_apply_uses_primary_processed_cv(monkeypatch):
     user_id, recruiter_id, job_id, primary_cv_id = ObjectId(), ObjectId(), ObjectId(), ObjectId()
@@ -60,10 +63,14 @@ def test_recruiter_run_matches_all_processed_cvs(monkeypatch):
     fake_db.jobs = Collection([job])
     fake_db.cvs = Collection([cv, {"_id": ObjectId(), "owner_id": cv_owner, "processing_status": "queued"}])
     fake_db.matching_results = Collection([])
+    fake_db.match_runs = Collection([])
     monkeypatch.setattr(matches, "db", fake_db)
 
-    rows = asyncio.run(matches.run_matches({"job_id": str(job_id)}, {"id": str(recruiter_id), "role": "recruiter"}))
+    run = asyncio.run(matches.run_matches({"job_id": str(job_id)}, {"id": str(recruiter_id), "role": "recruiter"}))
+    asyncio.run(matches.process_match_run(ObjectId(run["run_id"])))
+    status = asyncio.run(matches.match_run_status(run["run_id"], {"id": str(recruiter_id), "role": "recruiter"}))
 
-    assert len(rows) == 1
-    assert rows[0]["cv_id"] == str(cv["_id"])
-    assert rows[0]["rank"] == 1
+    assert status["total"] == 1
+    assert status["processed"] == 1
+    assert status["results"][0]["cv_id"] == str(cv["_id"])
+    assert status["results"][0]["rank"] == 1

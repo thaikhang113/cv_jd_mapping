@@ -116,8 +116,11 @@ def test_run_matches_includes_cv_contact_and_sorted(monkeypatch):
         {"_id": cv2, "owner_id": ObjectId(), "processing_status": "done", "raw_text": "Excel", "extracted_data": {"name": "Weak", "email": "weak@example.com", "phone": "2", "skills": ["excel"], "experience_years": 0}},
     ])
     fake_db.matching_results = Collection([])
+    fake_db.match_runs = Collection([])
     monkeypatch.setattr(matches, "db", fake_db)
-    rows = asyncio.run(matches.run_matches({"job_id": str(job_id)}, {"id": str(recruiter_id), "role": "recruiter"}))
+    run = asyncio.run(matches.run_matches({"job_id": str(job_id)}, {"id": str(recruiter_id), "role": "recruiter"}))
+    asyncio.run(matches.process_match_run(ObjectId(run["run_id"])))
+    rows = asyncio.run(matches.match_run_status(run["run_id"], {"id": str(recruiter_id), "role": "recruiter"}))["results"]
     assert rows[0]["overall_score"] >= rows[1]["overall_score"]
     assert rows[0]["cv_email"] == "good@example.com"
     assert rows[0]["cv_phone"] == "1"

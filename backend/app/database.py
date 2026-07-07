@@ -14,5 +14,6 @@ async def ensure_indexes():
     await db.cv_processing_queue.create_index([("status", 1), ("created_at", 1)])
     await db.jobs.create_index("recruiter_id")
     await db.matching_results.create_index([("job_id", 1), ("cv_id", 1)], unique=True)
+    await db.match_runs.create_index([("recruiter_id", 1), ("created_at", -1)])
     await db.applications.create_index([("job_id", 1), ("candidate_id", 1)], unique=True)
     await db.conversations.create_index("participant_ids")

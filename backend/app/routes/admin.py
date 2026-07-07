@@ -16,7 +16,10 @@ async def cvs(): return [serialize_doc(x) async for x in db.cvs.find({})]
 @router.get("/jobs")
 async def jobs(): return [serialize_doc(x) async for x in db.jobs.find({})]
 @router.get("/matches")
-async def matches(): return [serialize_doc(x) async for x in db.matching_results.find({})]
+async def matches(skip: int = 0, limit: int = 100):
+    limit = min(max(limit, 1), 500)
+    skip = max(skip, 0)
+    return [serialize_doc(x) async for x in db.matching_results.find({}).skip(skip).limit(limit)]
 @router.get("/applications")
 async def applications():
     rows = [x async for x in db.applications.find({})]
