@@ -47,7 +47,7 @@ export default function MatchReport({ match, jobTitle, companyName, onClose }) {
   const score = pct(match.overall_score)
   const sections = match.sections || {}
   const totalIssues = ORDER.reduce((sum, key) => sum + countIssues(sections[key]), 0)
-  return <div className="match-report">
+  const report = <div className="match-report">
     <div className="match-sidebar">
       <div className="match-steps"><span>Bước 1<br/><b>Phân tích</b></span><span>Bước 2<br/><b>CV</b></span><span>Bước 3<br/><b>JD</b></span></div>
       <h2>{jobTitle || match.job_title || 'CV/JD Matching'}</h2>
@@ -70,5 +70,10 @@ export default function MatchReport({ match, jobTitle, companyName, onClose }) {
       </section>
       {ORDER.map(key => <SectionBody key={key} id={key} section={sections[key]} />)}
     </div>
+  </div>
+  if (!onClose) return report
+  return <div className="report-modal" role="dialog" aria-modal="true">
+    <button type="button" className="report-backdrop" aria-label="Close report" onClick={onClose} />
+    <div className="report-modal-body">{report}</div>
   </div>
 }

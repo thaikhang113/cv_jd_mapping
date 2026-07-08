@@ -304,6 +304,11 @@ a:hover { text-decoration: underline; }
 .match-main{min-width:0;display:flex;flex-direction:column;gap:16px}
 .match-main .card:hover{transform:none}
 .match-actions{display:flex;justify-content:flex-end}
+.report-modal{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:24px}
+.report-backdrop{position:absolute;inset:0;border:0;background:rgba(7,20,32,.58);cursor:pointer}
+.report-modal-body{position:relative;width:min(1180px,calc(100vw - 32px));max-height:calc(100vh - 32px);overflow:auto;background:var(--background);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow-lg)}
+.report-modal .match-report{margin-top:0}
+.report-modal .match-sidebar{top:0}
 .overview-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:18px}
 .good-box,.warn-box{border-radius:var(--radius-sm);padding:14px 16px}
 .good-box{background:#E8F5F0}
@@ -325,7 +330,7 @@ a:hover { text-decoration: underline; }
 .row-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .detail-actions{margin-top:18px}
 .grid.two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
-@media (max-width:768px){.page-head{display:block}.grid.two{grid-template-columns:1fr}.row-actions{align-items:stretch}.row-actions .btn,.row-actions button{width:100%;justify-content:center}.match-report{grid-template-columns:1fr}.match-sidebar{position:static;max-height:none}.overview-grid{grid-template-columns:1fr}.section-title{display:block}.match-detail{min-width:0}}
+@media (max-width:768px){.page-head{display:block}.grid.two{grid-template-columns:1fr}.row-actions{align-items:stretch}.row-actions .btn,.row-actions button{width:100%;justify-content:center}.match-report{grid-template-columns:1fr}.match-sidebar{position:static;max-height:none}.overview-grid{grid-template-columns:1fr}.section-title{display:block}.match-detail{min-width:0}.report-modal{padding:8px}.report-modal-body{width:100%;max-height:calc(100vh - 16px);padding:12px}}
 .file-progress-item { align-items: flex-start; }
 .file-progress-main { flex: 1; min-width: 0; }
 .file-progress-head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
